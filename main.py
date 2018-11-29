@@ -13,6 +13,8 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
+r = re.compile(regexp)
+
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
@@ -24,26 +26,28 @@ def alarm(bot, job):
     """Send the alarm message."""
     bot.send_message(job.context, text='Beep!')
 
-def setReminder(bot, update):
+def setReminder(bot, update, chat_data):
     """Add a job to the queue."""
-    update.message.reply_text('Ok! Set timer. \nExample: \ntomorrow,\n17 00,\n17:00,\n10m')
+    update.message.reply_text('Ok! Set time. \nExample: \ntomorrow,\n17 00,\n17:00,\n10m')
 
 
-def set_timer(bot, update, args, job_queue, chat_data):
+def set_timer(bot, update, job_queue, chat_data):
     """Add a job to the queue."""
     chat_id = update.message.chat_id
 
     resultPattern = None
 
+
     try:
 
+        m = [m.groupdict() for m in r.finditer(update.message.text)]
 
         #resultPattern = re.match(r"\d+m", update.message.text)
 
 
 
         # args[0] should contain the time for the timer in seconds
-        due = int(args[0])
+        due =
         if due < 0:
             update.message.reply_text('Sorry we can not go back to future!')
             return
@@ -92,8 +96,10 @@ def main():
                                   pass_chat_data=True))
     dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
 
-    dp.add_handler(MessageHandler(Filters.forwarded, setReminder))
-    dp.add_handler(MessageHandler(Filters.text, set_timer))
+    dp.add_handler(MessageHandler(Filters.forwarded, setReminder, pass_chat_data=True))
+    dp.add_handler(MessageHandler(Filters.text, set_timer,
+                                  pass_job_queue=True,
+                                  pass_chat_data=True))
 
     # log all errors
     dp.add_error_handler(error)
