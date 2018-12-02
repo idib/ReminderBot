@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from setup import *
-
 import logging
 import re
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from dateutil.parser import parse
+import datetime
+from setup import *
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -13,18 +14,89 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
-r = re.compile(regexp)
+r = re.compile(regexpInput)
 
+rOffset = re.compile(regexpOffset)
+
+
+def mergeDict(dicts):
+    dict = {'date': None, 'time': None, 'offset': None}
+    result = []
+    i = 0
+    l = len(dicts)
+
+    while i < l:
+        if dicts[i]['date'] and i + 1 < l and dicts[i + 1]['time']:
+            result += [{'date': dicts[i]['date'], 'time': dicts[i + 1]['time'], 'offset': None}]
+            i += 1
+        else:
+            result += [dicts[i]]
+        i += 1
+    return result
+
+
+def offsetConvert(str):
+    m = rOffset.match(str).groupdict()
+    res = {}
+    for k, v in m.items():
+        if k and v:
+            res[k] = int(v)
+    return datetime.datetime.now() + datetime.timedelta(**res)
+
+
+def formatConversion(dDateTime):
+    res = None
+    today = parse("0:0")
+    now = datetime.datetime.now()
+    strDate = dDateTime['date']
+    strTime = dDateTime['time']
+    strOffset = dDateTime['offset']
+
+    if strOffset:
+        res = offsetConvert(strOffset)
+    elif strDate or strTime:
+        date = None
+        time = None
+        if strDate:
+            strDate = re.sub(r"\.- ", "/", strDate.strip())
+            if strDate == "today":
+                date = today
+            elif strDate == "tomorrow":
+                date = today + datetime.timedelta(days=1)
+            else:
+                date = parse(strDate)
+        if strTime:
+            strTime = strTime.replace(" ", ":")
+            if strTime in setupAPP:
+                time = today.replace(**setupAPP[strTime])
+            else:
+                time = parse(strTime)
+        if date and time:
+            res = datetime.datetime.combine(date.date(), time.time())
+        elif time:
+            if time < now:
+                time += datetime.timedelta(days=1)
+            res = time
+        elif date:
+            if date == today:
+                date += datetime.timedelta(**setupAPP['offset'])
+            else:
+                date = date.replace(**setupAPP['midday'])
+            if date < today:
+                date = date.replace(year=date.year + 1)
+            res = date
+    return res
 
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
-    update.message.reply_text('Hi! Use /set <seconds> to set a timer')
-
+    update.message.reply_text("hi")
+    update.message.reply_text(message['helloWorld'])
 
 def alarm(bot, job):
     """Send the alarm message."""
     bot.send_message(job.context, text='Beep!')
+
 
 def setReminder(bot, update, chat_data):
     """Add a job to the queue."""
@@ -34,32 +106,51 @@ def setReminder(bot, update, chat_data):
 def set_timer(bot, update, job_queue, chat_data):
     """Add a job to the queue."""
     chat_id = update.message.chat_id
+    m = mergeDict([m.groupdict() for m in r.finditer(update.message.text)])
 
-    resultPattern = None
+    structDatetime = datetime.datetime.today()
+    for spls in m:
+        try:
+            structDatetime = formatConversion(spls)
+            update.message.reply_text(f"{structDatetime}")
+        except:
+            update.message.reply_text("we can not convert you message")
+            update.message.reply_text(f"we problem exp: {spls}")
+            update.message.reply_text(f"original message: {t}")
 
-
-    try:
-
-        m = [m.groupdict() for m in r.finditer(update.message.text)]
-
-        #resultPattern = re.match(r"\d+m", update.message.text)
-
-
-
-        # args[0] should contain the time for the timer in seconds
-        due =
-        if due < 0:
-            update.message.reply_text('Sorry we can not go back to future!')
-            return
-
-        # Add job to queue
-        job = job_queue.run_once(alarm, due, context=chat_id)
+    if structDatetime > datetime.datetime.today():
+        update.message.reply_text("set Timer")
+        job = job_queue.run_once(alarm, (structDatetime - datetime.datetime.today()).total_seconds(), context=chat_id)
         chat_data['job'] = job
 
-        update.message.reply_text('Example: \ntomorrow,\n17 00,\n17:00,\n10m')
 
-    except (IndexError, ValueError):
-        update.message.reply_text('Usage: /set <seconds>')
+# chat_id = update.message.chat_id
+
+# resultPattern = None
+
+
+# try:
+#
+#     m = [m.groupdict() for m in r.finditer(update.message.text)]
+#
+#     resultPattern = re.match(r"\d+m", update.message.text)
+#
+#
+#
+# args[0] should contain the time for the timer in seconds
+# due =
+# if due < 0:
+#     update.message.reply_text('Sorry we can not go back to future!')
+#     return
+#
+# Add job to queue
+# job = job_queue.run_once(alarm, due, context=chat_id)
+# chat_data['job'] = job
+#
+# update.message.reply_text('Example: \ntomorrow,\n17 00,\n17:00,\n10m')
+#
+# except (IndexError, ValueError):
+#     update.message.reply_text('Usage: /set <seconds>')
 
 
 def unset(bot, update, chat_data):
