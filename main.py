@@ -87,11 +87,13 @@ def formatConversion(dDateTime):
             res = date
     return res
 
+
 # Define a few command handlers. These usually take the two arguments bot and
 # update. Error handlers also receive the raised TelegramError object in error.
 def start(bot, update):
     update.message.reply_text("hi")
     update.message.reply_text(message['helloWorld'])
+
 
 def alarm(bot, job):
     """Send the alarm message."""
@@ -122,35 +124,6 @@ def set_timer(bot, update, job_queue, chat_data):
         update.message.reply_text("set Timer")
         job = job_queue.run_once(alarm, (structDatetime - datetime.datetime.today()).total_seconds(), context=chat_id)
         chat_data['job'] = job
-
-
-# chat_id = update.message.chat_id
-
-# resultPattern = None
-
-
-# try:
-#
-#     m = [m.groupdict() for m in r.finditer(update.message.text)]
-#
-#     resultPattern = re.match(r"\d+m", update.message.text)
-#
-#
-#
-# args[0] should contain the time for the timer in seconds
-# due =
-# if due < 0:
-#     update.message.reply_text('Sorry we can not go back to future!')
-#     return
-#
-# Add job to queue
-# job = job_queue.run_once(alarm, due, context=chat_id)
-# chat_data['job'] = job
-#
-# update.message.reply_text('Example: \ntomorrow,\n17 00,\n17:00,\n10m')
-#
-# except (IndexError, ValueError):
-#     update.message.reply_text('Usage: /set <seconds>')
 
 
 def unset(bot, update, chat_data):
@@ -196,7 +169,9 @@ def main():
     dp.add_error_handler(error)
 
     # Start the Bot
-    updater.start_polling()
+    # updater.start_polling()
+    updater.start_webhook(listen='127.0.0.1', port=5000, url_path=TOKEN)
+    updater.bot.set_webhook(webhook_url=f'https://{DOMAIN}/{TOKEN}', certificate=open('/etc/nginx/cert.pem', 'rb'))
 
     # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
     # SIGABRT. This should be used most of the time, since start_polling() is

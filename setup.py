@@ -1,4 +1,5 @@
 TOKEN = ""
+DOMAIN = ""
 REQUEST_KWARGS = {
     # 'proxy_url': 'http://34.216.89.160:8080/'
 }
