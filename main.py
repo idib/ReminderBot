@@ -173,9 +173,9 @@ def main():
     dp.add_error_handler(error)
 
     # Start the Bot
-    updater.start_polling()
-    # updater.start_webhook(listen='127.0.0.1', port=5000, url_path=TOKEN)
-    # updater.bot.set_webhook(webhook_url=f'https://{DOMAIN}/{TOKEN}', certificate=open('/etc/nginx/cert.pem', 'rb'))
+    # updater.start_polling()
+    updater.start_webhook(listen='127.0.0.1', port=5000, url_path=TOKEN)
+    updater.bot.set_webhook(webhook_url=f'https://{DOMAIN}/{TOKEN}', certificate=open('/etc/nginx/cert.pem', 'rb'))
 
     # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
     # SIGABRT. This should be used most of the time, since start_polling() is
