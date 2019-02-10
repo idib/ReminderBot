@@ -110,19 +110,23 @@ def set_timer(bot, update, job_queue, chat_data):
     chat_id = update.message.chat_id
     m = mergeDict([m.groupdict() for m in r.finditer(update.message.text)])
 
+    timeNow = datetime.datetime.today()
+    chatDate = update.message.date
     structDatetime = datetime.datetime.today()
     for spls in m:
         try:
             structDatetime = formatConversion(spls)
             update.message.reply_text(f"{structDatetime}")
+            update.message.reply_text(f"{chatDate}")
+            update.message.reply_text(f"{timeNow}")
         except:
             update.message.reply_text("we can not convert you message")
             update.message.reply_text(f"we problem exp: {spls}")
             update.message.reply_text(f"original message: {t}")
 
-    if structDatetime > datetime.datetime.today():
+    if structDatetime > timeNow:
         update.message.reply_text("set Timer")
-        job = job_queue.run_once(alarm, (structDatetime - datetime.datetime.today()).total_seconds(), context=chat_id)
+        job = job_queue.run_once(alarm, (structDatetime - chatDate).total_seconds(), context=chat_id)
         chat_data['job'] = job
 
 
@@ -169,9 +173,9 @@ def main():
     dp.add_error_handler(error)
 
     # Start the Bot
-    # updater.start_polling()
-    updater.start_webhook(listen='127.0.0.1', port=5000, url_path=TOKEN)
-    updater.bot.set_webhook(webhook_url=f'https://{DOMAIN}/{TOKEN}', certificate=open('/etc/nginx/cert.pem', 'rb'))
+    updater.start_polling()
+    # updater.start_webhook(listen='127.0.0.1', port=5000, url_path=TOKEN)
+    # updater.bot.set_webhook(webhook_url=f'https://{DOMAIN}/{TOKEN}', certificate=open('/etc/nginx/cert.pem', 'rb'))
 
     # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
     # SIGABRT. This should be used most of the time, since start_polling() is
